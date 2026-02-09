@@ -3,127 +3,183 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Quick Question</title>
+  <title>Spin to Decide</title>
   <style>
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      display: grid;
-      place-items: center;
-      height: 100vh;
-      margin: 0;
-      background: #fff6fb;
+    body{
+      margin:0; height:100vh; display:grid; place-items:center;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#fff6fb;
     }
-    .card {
-      width: min(520px, 92vw);
-      padding: 28px;
-      border-radius: 18px;
-      background: white;
-      box-shadow: 0 10px 30px rgba(0,0,0,.08);
-      text-align: center;
+    .card{
+      width:min(560px,92vw);
+      background:#fff; border-radius:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+      padding:24px; text-align:center;
     }
-    h1 { margin: 0 0 14px; font-size: 26px; }
-    p { margin: 0 0 22px; opacity: .8; }
-    .arena {
-      position: relative;
-      height: 220px;
-      border-radius: 14px;
-      background: #f7f7ff;
-      overflow: hidden;
-      display: grid;
-      place-items: center;
+    h1{ margin:6px 0 4px; font-size:24px; }
+    p{ margin:0 0 14px; opacity:.75; }
+    .wrap{ display:grid; place-items:center; gap:12px; }
+    canvas{ width:320px; height:320px; max-width:78vw; max-height:78vw; }
+    .pointer{
+      width:0;height:0;
+      border-left:14px solid transparent;
+      border-right:14px solid transparent;
+      border-bottom:26px solid #111;
+      margin-bottom:-6px;
     }
-    button {
-      border: 0;
-      padding: 12px 18px;
-      font-size: 16px;
-      border-radius: 999px;
-      cursor: pointer;
-      box-shadow: 0 6px 16px rgba(0,0,0,.10);
-      user-select: none;
+    button{
+      border:0; padding:12px 18px; border-radius:999px;
+      font-size:16px; cursor:pointer;
+      box-shadow:0 6px 16px rgba(0,0,0,.10);
+      background:#111; color:#fff;
     }
-    #yes { background: #22c55e; color: white; }
-    #no {
-      position: absolute;
-      background: #ef4444;
-      color: white;
-      left: 55%;
-      top: 55%;
-      transform: translate(-50%, -50%);
-    }
-    .msg { margin-top: 16px; font-weight: 600; min-height: 24px; }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+    .msg{ min-height:28px; font-weight:700; margin-top:6px; }
+    .hint{ font-size:12px; opacity:.6; margin-top:2px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Will you go out with me? 🥺</h1>
-    <p>Choose wisely.</p>
+    <h1>Spin to decide 😈</h1>
+    <p>No pressure. Let fate decide.</p>
 
-    <div class="arena" id="arena">
-      <button id="yes">Yes</button>
-      <button id="no">No</button>
+    <div class="wrap">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="420" height="420"></canvas>
+      <button id="spinBtn">SPIN</button>
     </div>
 
     <div class="msg" id="msg"></div>
+    <div class="hint">Tip: refresh to “try again”.</div>
   </div>
 
   <script>
-    const arena = document.getElementById("arena");
-    const noBtn  = document.getElementById("no");
-    const yesBtn = document.getElementById("yes");
-    const msg    = document.getElementById("msg");
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const spinBtn = document.getElementById("spinBtn");
+    const msg = document.getElementById("msg");
 
-    const messages = [
-      "ehh don't be like that 😭",
-      "are you sure??",
-      "nope, try again 😆",
-      "you can't catch me!",
-      "just click yes lah 😌"
-    ];
-    let hops = 0;
+    // Segment labels (we will rig it to always land on YES)
+    const labels = ["YES 💖", "NO 😭", "MAYBE 🤔", "THINK AGAIN 😆"];
+    const n = labels.length;
 
-    function moveNoButton() {
-      const a = arena.getBoundingClientRect();
-      const b = noBtn.getBoundingClientRect();
+    // Don’t set colors explicitly per your preference? (You didn’t mention)
+    // We'll still use simple alternating grayscale so the wheel is visible.
+    const fills = ["#22c55e", "#ef4444", "#f59e0b", "#6366f1"];
 
-      // keep the button fully inside the arena
-      const maxX = a.width - b.width;
-      const maxY = a.height - b.height;
+    // Wheel geometry
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const r = Math.min(cx, cy) - 12;
+    const slice = (Math.PI * 2) / n;
 
-      const x = Math.random() * maxX;
-      const y = Math.random() * maxY;
+    function drawWheel(angle = 0){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
 
-      noBtn.style.left = `${x}px`;
-      noBtn.style.top  = `${y}px`;
-      noBtn.style.transform = `none`;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
 
-      msg.textContent = messages[Math.min(hops, messages.length - 1)];
-      hops++;
+      for(let i=0;i<n;i++){
+        const start = i * slice;
+        const end = start + slice;
 
-      // optional escalation: make YES bigger over time
-      const scale = Math.min(1 + hops * 0.06, 1.8);
-      yesBtn.style.transform = `scale(${scale})`;
+        // slice
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0,0,r,start,end);
+        ctx.closePath();
+        ctx.fillStyle = fills[i % fills.length];
+        ctx.fill();
+
+        // text
+        ctx.save();
+        ctx.rotate(start + slice/2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "white";
+        ctx.font = "700 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+        ctx.fillText(labels[i], r - 18, 8);
+        ctx.restore();
+      }
+
+      // center cap
+      ctx.beginPath();
+      ctx.arc(0,0,46,0,Math.PI*2);
+      ctx.fillStyle = "#111";
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "800 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("SPIN", 0, 5);
+
+      ctx.restore();
     }
 
-    // Trigger when hovering OR getting close (more “impossible”)
-    noBtn.addEventListener("mouseenter", moveNoButton);
+    // Initial draw
+    let currentAngle = 0;
+    drawWheel(currentAngle);
 
-    arena.addEventListener("mousemove", (e) => {
-      const n = noBtn.getBoundingClientRect();
-      const dx = e.clientX - (n.left + n.width / 2);
-      const dy = e.clientY - (n.top + n.height / 2);
-      const dist = Math.hypot(dx, dy);
+    // We want the pointer to be at the TOP (12 o'clock).
+    // Landing logic: whichever slice is under 12 o'clock after rotation.
+    // We'll rig the final angle so the slice "YES 💖" ends up at the pointer.
 
-      if (dist < 80) moveNoButton(); // adjust radius for difficulty
-    });
+    const YES_INDEX = 0; // labels[0] is YES 💖
 
-    yesBtn.addEventListener("click", () => {
-      msg.textContent = "YAY 💖 okay when are we going?";
-      noBtn.style.display = "none";
-      yesBtn.disabled = true;
-      yesBtn.style.cursor = "default";
-    });
+    function angleThatLandsOnIndex(index){
+      // pointer at -90deg (top). We want the middle of desired slice to align there.
+      // Desired slice center angle in wheel coordinates: index*slice + slice/2
+      const targetCenter = index * slice + slice/2;
 
-    noBtn.addEventListener("click", moveNoButton); // just in case they tap it on mobile
+      // We rotate the wheel by angle 'a'. A point at wheel angle targetCenter ends up at screen angle targetCenter + a.
+      // We want it at -90deg (i.e. -Math.PI/2).
+      let a = (-Math.PI/2) - targetCenter;
+
+      // Normalize to [0, 2pi)
+      a = ((a % (Math.PI*2)) + (Math.PI*2)) % (Math.PI*2);
+      return a;
+    }
+
+    function spin(){
+      spinBtn.disabled = true;
+      msg.textContent = "Spinning...";
+
+      // Base angle that guarantees YES under pointer
+      const yesAngle = angleThatLandsOnIndex(YES_INDEX);
+
+      // Add extra full rotations for drama
+      const extraTurns = 6 + Math.floor(Math.random()*4); // 6–9 turns
+      const finalAngle = yesAngle + extraTurns * Math.PI * 2;
+
+      // Animate from currentAngle -> finalAngle
+      const start = performance.now();
+      const duration = 2200; // ms
+
+      // Ease out (cubic)
+      function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+      function frame(now){
+        const t = Math.min(1, (now - start) / duration);
+        const eased = easeOutCubic(t);
+
+        // interpolate angle
+        const a = currentAngle + (finalAngle - currentAngle) * eased;
+        drawWheel(a);
+
+        if(t < 1){
+          requestAnimationFrame(frame);
+        } else {
+          currentAngle = finalAngle % (Math.PI*2);
+          msg.textContent = "It’s decided: YES 💖";
+          spinBtn.textContent = "AGAIN";
+          spinBtn.disabled = false;
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    spinBtn.addEventListener("click", spin);
   </script>
 </body>
 </html>
