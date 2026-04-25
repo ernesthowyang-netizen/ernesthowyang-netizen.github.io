@@ -1,1 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yes or No</title>
+  <style>
+    body{
+      margin:0; height:100vh; display:grid; place-items:center;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#fff6fb;
+    }
+    .card{
+      width:min(420px,92vw);
+      background:#fff; border-radius:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08);
+      padding:24px; text-align:center;
+    }
+    h1{ margin:6px 0 16px; }
 
+    .buttons{
+      display:flex;
+      justify-content:center;
+      gap:16px;
+      margin-top:20px;
+    }
+
+    button{
+      border:0;
+      border-radius:12px;
+      font-size:18px;
+      cursor:pointer;
+      transition: all 0.25s ease;
+    }
+
+    #yesBtn{
+      padding:16px 28px;
+      background:#22c55e;
+      color:white;
+    }
+
+    #noBtn{
+      padding:16px 28px;
+      background:#ef4444;
+      color:white;
+    }
+
+    .msg{
+      margin-top:18px;
+      font-weight:700;
+      min-height:24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Be honest 😈</h1>
+
+    <div class="buttons">
+      <button id="yesBtn">YES 💖</button>
+      <button id="noBtn">NO 😭</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script>
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
+    const msg = document.getElementById("msg");
+
+    let noScale = 1;
+
+    noBtn.addEventListener("click", () => {
+      noScale *= 0.75; // shrink each time
+
+      noBtn.style.transform = `scale(${noScale})`;
+
+      msg.textContent = "Hmm... you sure? 😏";
+
+      // optional: after too small, disable it
+      if(noScale < 0.2){
+        noBtn.disabled = true;
+        msg.textContent = "Okay lah... NO is not really an option anymore 😈";
+      }
+    });
+
+    yesBtn.addEventListener("click", () => {
+      msg.textContent = "Good choice 😌💖";
+    });
+  </script>
+</body>
+</html>
