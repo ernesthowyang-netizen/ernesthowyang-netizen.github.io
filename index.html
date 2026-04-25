@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Spin to Decide</title>
+  <title>Yes or No</title>
   <style>
     body{
       margin:0; height:100vh; display:grid; place-items:center;
@@ -11,175 +11,83 @@
       background:#fff6fb;
     }
     .card{
-      width:min(560px,92vw);
+      width:min(420px,92vw);
       background:#fff; border-radius:18px;
       box-shadow:0 10px 30px rgba(0,0,0,.08);
       padding:24px; text-align:center;
     }
-    h1{ margin:6px 0 4px; font-size:24px; }
-    p{ margin:0 0 14px; opacity:.75; }
-    .wrap{ display:grid; place-items:center; gap:12px; }
-    canvas{ width:320px; height:320px; max-width:78vw; max-height:78vw; }
-    .pointer{
-      width:0;height:0;
-      border-left:14px solid transparent;
-      border-right:14px solid transparent;
-      border-bottom:26px solid #111;
-      margin-bottom:-6px;
+    h1{ margin:6px 0 16px; }
+
+    .buttons{
+      display:flex;
+      justify-content:center;
+      gap:16px;
+      margin-top:20px;
     }
+
     button{
-      border:0; padding:12px 18px; border-radius:999px;
-      font-size:16px; cursor:pointer;
-      box-shadow:0 6px 16px rgba(0,0,0,.10);
-      background:#111; color:#fff;
+      border:0;
+      border-radius:12px;
+      font-size:18px;
+      cursor:pointer;
+      transition: all 0.25s ease;
     }
-    button:disabled{ opacity:.55; cursor:not-allowed; }
-    .msg{ min-height:28px; font-weight:700; margin-top:6px; }
-    .hint{ font-size:12px; opacity:.6; margin-top:2px; }
+
+    #yesBtn{
+      padding:16px 28px;
+      background:#22c55e;
+      color:white;
+    }
+
+    #noBtn{
+      padding:16px 28px;
+      background:#ef4444;
+      color:white;
+    }
+
+    .msg{
+      margin-top:18px;
+      font-weight:700;
+      min-height:24px;
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Spin to decide 😈</h1>
-    <p>No pressure. Let fate decide.</p>
+    <h1>Be honest 😈</h1>
 
-    <div class="wrap">
-      <div class="pointer"></div>
-      <canvas id="wheel" width="420" height="420"></canvas>
-      <button id="spinBtn">SPIN</button>
+    <div class="buttons">
+      <button id="yesBtn">YES 💖</button>
+      <button id="noBtn">NO 😭</button>
     </div>
 
     <div class="msg" id="msg"></div>
-    <div class="hint">Tip: refresh to “try again”.</div>
   </div>
 
   <script>
-    const canvas = document.getElementById("wheel");
-    const ctx = canvas.getContext("2d");
-    const spinBtn = document.getElementById("spinBtn");
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
     const msg = document.getElementById("msg");
 
-    // Segment labels (we will rig it to always land on YES)
-    const labels = ["YES 💖", "NO 😭", "MAYBE 🤔", "THINK AGAIN 😆"];
-    const n = labels.length;
+    let noScale = 1;
 
-    // Don’t set colors explicitly per your preference? (You didn’t mention)
-    // We'll still use simple alternating grayscale so the wheel is visible.
-    const fills = ["#22c55e", "#ef4444", "#f59e0b", "#6366f1"];
+    noBtn.addEventListener("click", () => {
+      noScale *= 0.75; // shrink each time
 
-    // Wheel geometry
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const r = Math.min(cx, cy) - 12;
-    const slice = (Math.PI * 2) / n;
+      noBtn.style.transform = `scale(${noScale})`;
 
-    function drawWheel(angle = 0){
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+      msg.textContent = "Hmm... you sure? 😏";
 
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(angle);
-
-      for(let i=0;i<n;i++){
-        const start = i * slice;
-        const end = start + slice;
-
-        // slice
-        ctx.beginPath();
-        ctx.moveTo(0,0);
-        ctx.arc(0,0,r,start,end);
-        ctx.closePath();
-        ctx.fillStyle = fills[i % fills.length];
-        ctx.fill();
-
-        // text
-        ctx.save();
-        ctx.rotate(start + slice/2);
-        ctx.textAlign = "right";
-        ctx.fillStyle = "white";
-        ctx.font = "700 18px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-        ctx.fillText(labels[i], r - 18, 8);
-        ctx.restore();
+      // optional: after too small, disable it
+      if(noScale < 0.2){
+        noBtn.disabled = true;
+        msg.textContent = "Okay lah... NO is not really an option anymore 😈";
       }
+    });
 
-      // center cap
-      ctx.beginPath();
-      ctx.arc(0,0,46,0,Math.PI*2);
-      ctx.fillStyle = "#111";
-      ctx.fill();
-
-      ctx.fillStyle = "#fff";
-      ctx.font = "800 14px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("SPIN", 0, 5);
-
-      ctx.restore();
-    }
-
-    // Initial draw
-    let currentAngle = 0;
-    drawWheel(currentAngle);
-
-    // We want the pointer to be at the TOP (12 o'clock).
-    // Landing logic: whichever slice is under 12 o'clock after rotation.
-    // We'll rig the final angle so the slice "YES 💖" ends up at the pointer.
-
-    const YES_INDEX = 0; // labels[0] is YES 💖
-
-    function angleThatLandsOnIndex(index){
-      // pointer at -90deg (top). We want the middle of desired slice to align there.
-      // Desired slice center angle in wheel coordinates: index*slice + slice/2
-      const targetCenter = index * slice + slice/2;
-
-      // We rotate the wheel by angle 'a'. A point at wheel angle targetCenter ends up at screen angle targetCenter + a.
-      // We want it at -90deg (i.e. -Math.PI/2).
-      let a = (-Math.PI/2) - targetCenter;
-
-      // Normalize to [0, 2pi)
-      a = ((a % (Math.PI*2)) + (Math.PI*2)) % (Math.PI*2);
-      return a;
-    }
-
-    function spin(){
-      spinBtn.disabled = true;
-      msg.textContent = "Spinning...";
-
-      // Base angle that guarantees YES under pointer
-      const yesAngle = angleThatLandsOnIndex(YES_INDEX);
-
-      // Add extra full rotations for drama
-      const extraTurns = 6 + Math.floor(Math.random()*4); // 6–9 turns
-      const finalAngle = yesAngle + extraTurns * Math.PI * 2;
-
-      // Animate from currentAngle -> finalAngle
-      const start = performance.now();
-      const duration = 2200; // ms
-
-      // Ease out (cubic)
-      function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-
-      function frame(now){
-        const t = Math.min(1, (now - start) / duration);
-        const eased = easeOutCubic(t);
-
-        // interpolate angle
-        const a = currentAngle + (finalAngle - currentAngle) * eased;
-        drawWheel(a);
-
-        if(t < 1){
-          requestAnimationFrame(frame);
-        } else {
-          currentAngle = finalAngle % (Math.PI*2);
-          msg.textContent = "It’s decided: YES 💖";
-          spinBtn.textContent = "AGAIN";
-          spinBtn.disabled = false;
-        }
-      }
-
-      requestAnimationFrame(frame);
-    }
-
-    spinBtn.addEventListener("click", spin);
+    yesBtn.addEventListener("click", () => {
+      msg.textContent = "Good choice 😌💖";
+    });
   </script>
 </body>
 </html>
